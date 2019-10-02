@@ -1,0 +1,12 @@
+#create akition raid 6 pool on ZFS with 4 micron SSD
+/usr/sbin/diskutil unmount disk1
+/usr/sbin/diskutil unmount disk2
+/usr/sbin/diskutil unmount disk3
+/usr/sbin/diskutil unmount disk4
+sudo zpool create -f \
+  -o ashift=13 \
+  -O casesensitivity=insensitive \
+  -O normalization=formD \
+  -O compression=lz4 \
+  tankakissd raidz2 disk1 disk2 disk3 disk4
+  chown lknight /Volumes/tankakissd4
