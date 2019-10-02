@@ -9,4 +9,115 @@ sudo zpool create -f \
   -O normalization=formD \
   -O compression=lz4 \
   tankakissd raidz2 disk1 disk2 disk3 disk4
-  chown lknight /Volumes/tankakissd4
+
+chown lknight /Volumes/tankakissd4
+sudo zpool destroy tankakissd 
+
+#create akition 2 way mirror pool on ZFS with 4 micron SSD
+sudo zpool create -f \
+  -o ashift=13 \
+  -O casesensitivity=insensitive \
+  -O normalization=formD \
+  -O compression=lz4 \
+  tankakissd4 mirror disk1 disk2 mirror disk3 disk4
+sudo chown lknight /Volumes/tankakissd4
+
+sudo zpool destroy tankakissd 
+sudo zpool create -f \
+  -o ashift=13 \
+  -O casesensitivity=insensitive \
+  -O normalization=formD \
+  -O compression=lz4 \
+  -O encryption=on \
+  -O keylocation=prompt \
+  -O keyformat=passphrase \
+    akisecure \
+  tankakissd4 mirror disk1 disk2 mirror disk3 disk4
+sudo chown lknight /Volumes/tankakissd4
+zpool set feature@encryption=enabled tankakissd4
+#At-rest encryption is a new feature in ZFS (zpool set feature@encryption=enabled <pool>) that will automatically encrypt almost all data written to disk using modern authenticated ciphers (AEAD) such as AES-CCM and AES-GCM.
+#https://blog.heckel.io/2017/01/08/zfs-encryption-openzfs-zfs-on-linux/
+
+#zfs create -o encryption=aes-256-gcm -o keysource=raw file:///Users/lknight/.ssh/lkprime2018.pem
+#######
+
+/usr/sbin/diskutil partitionDisk disk1s2 GPT JHFS+ m1 100%
+/usr/sbin/diskutil partitionDisk disk1s2 GPT JHFS+ m2 100%
+/usr/sbin/diskutil partitionDisk disk4s2 GPT JHFS+ m4 100%
+/usr/sbin/diskutil partitionDisk disk5s2 GPT JHFS+ m5 100%
+
+
+/usr/sbin/diskutil partitionDisk disk1 GPT JHFS+ m1 100%
+/usr/sbin/diskutil partitionDisk disk2 GPT JHFS+ m2 100%
+/usr/sbin/diskutil partitionDisk disk4 GPT JHFS+ m4 100%
+/usr/sbin/diskutil partitionDisk disk5 GPT JHFS+ m5 100%
+
+/usr/sbin/diskutil coreStorage convert disk1s2 -passphrase
+Core Storage LVG UUID: 54ECFD38-4D15-4829-8E8C-DF3EC7A36226
+Core Storage PV UUID: 36FF62FA-9248-4CFC-9F96-7B93B7124F48
+Core Storage LV UUID: FA82D63A-56B6-4C6E-B6D2-53E3C7C181FD
+
+/usr/sbin/diskutil coreStorage convert disk1s2 -passphrase
+Core Storage LVG UUID: B1D55D82-F580-4F35-ACD0-401DF2A1F493
+Core Storage PV UUID: 091CBFB0-D4D0-4F5A-82B7-C9F6910CF4BE
+Core Storage LV UUID: E0FE9E93-484A-4651-B5C8-333FB148E767
+
+/usr/sbin/diskutil coreStorage convert disk4s2 -passphrase
+Core Storage LVG UUID: 1A773081-C248-48ED-8493-4C28E43FA518
+Core Storage PV UUID: A219BD12-D6B4-445E-AB03-A8C9ECBDBB06
+Core Storage LV UUID: 2DE0CD4D-5FBF-47C1-B60A-C6BB95D0B688
+
+/usr/sbin/diskutil coreStorage convert disk5s2 -passphrase
+Core Storage LVG UUID: AC3765B6-7D66-4B35-AFA1-233268B10074
+Core Storage PV UUID: D68D03AD-BAEF-41AD-A065-9CDAD3FD52EA
+Core Storage LV UUID: F53DF5A7-62AA-41AC-98CC-522CF46D2C61
+
+
+/usr/sbin/diskutil eject disk6
+/usr/sbin/diskutil eject disk7
+/usr/sbin/diskutil eject disk8
+/usr/sbin/diskutil eject disk9
+
+#вытащить шнур и воткнуть заново, проверить что подключаются
+/Users/lknight/iCloud Drive/macOSDemi/list-core-storage.sh | grep Conversion
+#процент конверсии
+
+##unmount volume to create zfs
+/usr/sbin/diskutil unmount FA82D63A-56B6-4C6E-B6D2-53E3C7C181FD || true
+/usr/sbin/diskutil unmount E0FE9E93-484A-4651-B5C8-333FB148E767 || true
+/usr/sbin/diskutil unmount 2DE0CD4D-5FBF-47C1-B60A-C6BB95D0B688 || true
+/usr/sbin/diskutil unmount F53DF5A7-62AA-41AC-98CC-522CF46D2C61 || true
+
+
+sudo zpool create -f \
+  -o ashift=13 \
+  -O casesensitivity=insensitive \
+  -O normalization=formD \
+  -O compression=lz4 \
+  tankakissd4 mirror \
+  /var/run/disk/by-id/media-FA82D63A-56B6-4C6E-B6D2-53E3C7C181FD \
+  /var/run/disk/by-id/media-E0FE9E93-484A-4651-B5C8-333FB148E767 \
+  mirror \
+  /var/run/disk/by-id/media-2DE0CD4D-5FBF-47C1-B60A-C6BB95D0B688 \
+  /var/run/disk/by-id/media-F53DF5A7-62AA-41AC-98CC-522CF46D2C61 
+sudo chown lknight /Volumes/tankakissd4
+sudo zpool destroy tankakissd 
+
+
+
+/var/run/disk/by-id/media-
+##########################################################################################
+#zfs create \
+    -o encryption=<off | on | aes-128-ccm | aes-192-ccm | aes-256-ccm | aes-128-gcm | aes-192-gcm | aes-256-gcm> \
+    -o keysource=<raw | hex | passphrase>,<prompt | file://...> \
+    -o pbkdf2iters=<n> \
+    <dataset>
+
+zfs create -o encryption=on -o keysource=passphrase,prompt -o pbkdf2iters=100000 tankakissd4/secure
+zfs create -o encryption=on -o keylocation=prompt -o keyformat=passphrase [akisecure]
+
+-o keylocation=prompt -o keyformat=passphrase akisecure
+zfs mount -l akisecure
+#security find-generic-password -a [dataset] -w | zfs mount -l [dataset]
+#-o keylocation=file:///~/.ssh/lkprime2018.pem -o keyformat=raw
+
